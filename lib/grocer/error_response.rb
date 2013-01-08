@@ -21,6 +21,7 @@ module Grocer
     }
 
     COMMAND = 8
+    LENGTH = 6
 
     attr_accessor :status_code, :identifier
 

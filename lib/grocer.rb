@@ -1,4 +1,5 @@
 require 'grocer/error_response'
+require 'grocer/error_response_checker'
 require 'grocer/feedback'
 require 'grocer/feedback_connection'
 require 'grocer/notification'
