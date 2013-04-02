@@ -21,8 +21,19 @@ module Grocer
 
     def write(content)
       with_connection do
-        ssl.write(content)
+        begin
+          @error = ssl.read_nonblock(8)
+        rescue IO::WaitReadable
+          @error = nil
+          ssl.write(content)
+        else
+          0
+        end
       end
+    end
+
+    def error
+      @error && ErrorReponse.new(@error)
     end
 
     def connect

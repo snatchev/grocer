@@ -1,4 +1,5 @@
 module Grocer
+
   class Pusher
     def initialize(connection)
       @connection = connection
@@ -6,7 +7,11 @@ module Grocer
     end
 
     def push(notification)
-      @connection.write(notification.to_bytes)
+      @buffer << notification
+      bytes = @connection.write(notification.to_bytes)
+      if bytes == 0
+        puts @connection.error
+      end
     end
   end
 end
