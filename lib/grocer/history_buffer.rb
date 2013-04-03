@@ -50,6 +50,10 @@ module Grocer
       current
     end
 
+    def end_of_buffer?
+      @current_index == -1
+    end
+
     def current
       @array[@current_index]
     end
