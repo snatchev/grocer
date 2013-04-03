@@ -7,7 +7,7 @@ require 'grocer/notification'
 require 'grocer/passbook_notification'
 require 'grocer/push_connection'
 require 'grocer/pusher'
-require 'grocer/ring_buffer'
+require 'grocer/history_buffer'
 require 'grocer/server'
 require 'grocer/version'
 

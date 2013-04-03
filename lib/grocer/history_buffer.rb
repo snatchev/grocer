@@ -1,7 +1,7 @@
 require 'forwardable'
 
 module Grocer
-  class RingBuffer
+  class HistoryBuffer
     extend Forwardable
     def_delegators :@array, :size
 
@@ -17,16 +17,13 @@ module Grocer
       if @array.size >= @max_size
         @array.shift
       end
-      if @current_index == (@array.size - 1)
-        @current_index += 1
-      end
 
       @array << obj
     end
     alias :push :<<
 
     def rewind_to(&block)
-      @current_index.downto(0) do |index|
+      @current_index.downto(-@max_size) do |index|
         obj = @array[index]
         if block.call(obj) == true
           @current_index = index
@@ -37,14 +34,24 @@ module Grocer
       current
     end
 
+    def play(&block)
+      while self.next
+        block.call(current)
+      end
+    end
+
     def next
       @current_index += 1
+
+      if @current_index >= 0
+        @current_index = -1
+        return nil
+      end
       current
     end
 
     def current
       @array[@current_index]
     end
-
   end
 end
