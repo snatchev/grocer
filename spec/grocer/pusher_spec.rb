@@ -13,5 +13,18 @@ describe Grocer::Pusher do
 
       connection.should have_received(:write).with('abc123')
     end
+
+    it "should buffer the notification on push" do
+      notification = stub
+      subject.push(notification)
+      subject.buffer.current.should == notification
+    end
+
+    it "should not buffer a notification if we are retrying from the buffer" do
+    end
+
+    it "should push notifications that occured after an error was detected" do
+    end
+
   end
 end
