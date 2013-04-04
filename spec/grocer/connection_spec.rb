@@ -3,10 +3,17 @@ require 'grocer/connection'
 
 describe Grocer::Connection do
   subject { described_class.new(connection_options) }
+
   let(:connection_options) { { certificate: '/path/to/cert.pem',
                                gateway: 'push.example.com',
                                port: 443 } }
+
   let(:ssl) { stub_everything('SSLConnection') }
+
+  let(:nonblock_exception) do
+    Errno::EWOULDBLOCK.new.extend(IO::WaitReadable)
+  end
+
   before do
     Grocer::SSLConnection.stubs(:new).returns(ssl)
   end
@@ -57,6 +64,7 @@ describe Grocer::Connection do
   end
 
   it 'raises CertificateExpiredError for OpenSSL::SSL::SSLError with /certificate expired/i message' do
+    ssl.stubs(:read_nonblock).raises(nonblock_exception)
     ssl.stubs(:write).raises(OpenSSL::SSL::SSLError.new('certificate expired'))
     -> {subject.write('abc123')}.should raise_error(Grocer::CertificateExpiredError)
   end
@@ -67,6 +75,7 @@ describe Grocer::Connection do
     end
 
     it '#write delegates to open SSLConnection' do
+      ssl.stubs(:read_nonblock).raises(nonblock_exception)
       subject.write('Apples to Oranges')
       ssl.should have_received(:write).with('Apples to Oranges')
     end
@@ -83,6 +92,7 @@ describe Grocer::Connection do
     end
 
     it '#write connects SSLConnection and delegates to it' do
+      ssl.stubs(:read_nonblock).raises(nonblock_exception)
       subject.write('Apples to Oranges')
       ssl.should have_received(:connect)
       ssl.should have_received(:write).with('Apples to Oranges')
