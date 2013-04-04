@@ -48,18 +48,4 @@ describe Grocer::HistoryBuffer do
       subject.current.should == 'j'
     end
   end
-
-  it "should yield for each element from the current to the end" do
-    subject.rewind_to do |c|
-      c == 'a'
-    end
-
-    buffer = ""
-    subject.play do |c|
-      buffer << c
-    end
-
-    buffer.should == "bcdefghij"
-    subject.current.should == "j"
-  end
 end

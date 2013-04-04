@@ -1,9 +1,5 @@
-require 'forwardable'
-
 module Grocer
   class HistoryBuffer
-    extend Forwardable
-    def_delegators :@array, :size
 
     attr_reader :max_size, :current
 
@@ -11,6 +7,10 @@ module Grocer
       @max_size = max_size
       @array = Array.new()
       @current_index = -1
+    end
+
+    def size
+      @array.size
     end
 
     def <<(obj)
@@ -32,12 +32,6 @@ module Grocer
       end
 
       current
-    end
-
-    def play(&block)
-      while self.next
-        block.call(current)
-      end
     end
 
     def next
