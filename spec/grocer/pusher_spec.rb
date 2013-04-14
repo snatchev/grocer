@@ -16,31 +16,51 @@ describe Grocer::Pusher do
     end
 
     it 'should buffer the notification' do
-      notification = stub
+      notification = mock("Notification") do
+        stubs(:to_bytes => 'abc123')
+      end
+
       expect {
         subject.push(notification)
       }.to change{subject.buffer.size}.by(1)
     end
 
     it 'should replay the buffered notifications if an error was reported' do
-      notification = double
-      connection.stub(:error).and_return(stub('ErrorResponse'))
+      notification = mock("Notification") do
+        stubs(:to_bytes => 'abc123')
+        stubs(:identifier)
+      end
+      error_response = mock('ErrorResponse') do
+        stubs(:identifier)
+      end
+      connection.stubs(:error).returns(error_response)
+      subject.stubs(:replay_buffer)
       subject.push(notification)
       subject.should have_received(:replay_buffer)
     end
 
     it 'should not replay a buffered notification that was reported to have an error' do
-      notification = stub(identifier: 1)
-      connection.stub(error: notification)
-      subject.buffer.enq(notification)
-      #call push on the next notification
-      subject.push(stub)
-      subject.should_not have_received(:push).with(notification)
+      bad_notification = mock("BadNotification") do
+        stubs(:to_bytes => 'abc123')
+        stubs(:identifier => 1)
+      end
+      good_notification = mock("GoodNotification") do
+        stubs(:to_bytes => 'abc123')
+        stubs(:identifier => 2)
+      end
+      connection.stubs(:error).returns(bad_notification, nil)
+      subject.buffer.enq(bad_notification)
+      subject.push(good_notification)
+      subject.should have_received(:push).with(bad_notification).never
     end
   end
 
   describe '#replay_buffer' do
-    let(:notification) { stub('Notification') }
+    let(:notification) do
+      mock('Notification') do
+        stubs(:to_bytes => 'abc123')
+      end
+    end
 
     before do
       subject.buffer.enq(notification)
@@ -48,17 +68,13 @@ describe Grocer::Pusher do
 
     it 'should push each buffered notification' do
       subject.replay_buffer
-      subject.should have_received(:push).with(notification).once
+      connection.should have_received(:write).with(notification.to_bytes)
     end
 
     it 'should not change the buffer' do
       expect {
         subject.replay_buffer
-      }.to_not change{subject.buffer}
-    end
-
-    it 'should push buffered notifications until the buffer is empty' do
-      pending
+      }.to_not change{subject.buffer.size}
     end
   end
 

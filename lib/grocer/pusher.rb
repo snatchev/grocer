@@ -1,27 +1,5 @@
 module Grocer
   class Pusher
-    class Buffer < Queue
-      def initialize(max_size)
-        @max_size = max_size
-        super()
-      end
-
-      def enq(value)
-        if self.length >= @max_size
-          self.deq
-        end
-        super
-      end
-
-      def shift_until(&block)
-        while obj = self.shift
-          if block.call(obj) == true
-            break
-          end
-        end
-        self
-      end
-    end
 
     attr_reader :buffer
 
@@ -31,20 +9,26 @@ module Grocer
     end
 
     def push(notification)
-      @buffer.enq(notification)
+      @buffer.push(notification)
       @connection.write(notification.to_bytes)
 
-      if @connection.error
-        @buffer.shift_until do |n|
-          n.identifier == @connection.error.identifier
+      error = @connection.error
+      if error
+        @buffer.pop_until do |n|
+          n.identifier == error.identifier
         end
-        replay_buffer
+        self.replay_buffer
       end
     end
 
     def replay_buffer
-      while notification = @buffer.deq
-        self.push(notification)
+      replay_buffer = Buffer.new(100)
+      while !@buffer.empty?
+        replay_buffer.push(@buffer.pop)
+      end
+
+      while !replay_buffer.empty?
+        self.push(replay_buffer.pop)
       end
     end
   end
