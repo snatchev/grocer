@@ -27,13 +27,15 @@ module Grocer
           @error = nil
           ssl.write(content)
         else
+          destroy_connection
+          connect
           0
         end
       end
     end
 
     def error
-      @error && ErrorReponse.new(@error)
+      @error && ErrorResponse.new(@error)
     end
 
     def connect

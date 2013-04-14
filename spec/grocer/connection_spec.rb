@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'grocer/connection'
+require 'grocer/error_response'
 
 describe Grocer::Connection do
   subject { described_class.new(connection_options) }
@@ -80,6 +81,12 @@ describe Grocer::Connection do
       ssl.should have_received(:write).with('Apples to Oranges')
     end
 
+    it "#write will check to see if there are any errors to read from the socket" do
+      ssl.stubs(:read_nonblock).returns("\b\x00\x00\x00\x00\x00")
+      subject.write('Apples to Oranges')
+      expect(subject.error).to be_instance_of(Grocer::ErrorResponse)
+    end
+
     it '#read delegates to open SSLConnection' do
       subject.read(42, 'IO')
       ssl.should have_received(:read).with(42, 'IO')
@@ -96,6 +103,13 @@ describe Grocer::Connection do
       subject.write('Apples to Oranges')
       ssl.should have_received(:connect)
       ssl.should have_received(:write).with('Apples to Oranges')
+    end
+
+    it "#write will reconnect if it encounters an error" do
+      ssl.stubs(:read_nonblock).returns("\b\x00\x00\x00\x00\x00")
+      subject.write('Apples to Oranges')
+      ssl.should have_received(:disconnect).once
+      ssl.should have_received(:connect).twice
     end
 
     it '#read connects SSLConnection delegates to open SSLConnection' do
