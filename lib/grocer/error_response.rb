@@ -1,5 +1,5 @@
 module Grocer
-  class ErrorResponse
+  class ErrorResponse < StandardError
     STATUS_CODE_DESCRIPTIONS = {
       0 => 'No errors encountered',
       1 => 'Processing error',

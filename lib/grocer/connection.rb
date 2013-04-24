@@ -10,7 +10,6 @@ module Grocer
       @passphrase = options.fetch(:passphrase) { nil }
       @gateway = options.fetch(:gateway) { fail NoGatewayError }
       @port = options.fetch(:port) { fail NoPortError }
-      @retries = options.fetch(:retries) { 3 }
     end
 
     def read(size = nil, buf = nil)
@@ -19,9 +18,22 @@ module Grocer
       end
     end
 
+    ##
+    # Before writing to the socket we use read_nonblock to check for incoming
+    # data. The happy case is that there is no data, however, because of the
+    # way read_nonblock works, it raises IO:WaitReadable. If we are rescuing
+    # IO::WaitReadable we can safely write to the socket. Otherwise, we destroy
+    # the connection and raise an error based on the data read from the socket.
     def write(content)
       with_connection do
-        ssl.write(content)
+        begin
+          error = ssl.read_nonblock(8)
+        rescue IO::WaitReadable
+          ssl.write(content)
+        else
+          destroy_connection
+          raise ErrorResponse.new(error)
+        end
       end
     end
 
@@ -50,21 +62,14 @@ module Grocer
     end
 
     def with_connection
-      attempts = 1
       begin
         connect
         yield
-      rescue => e
-        if e.class == OpenSSL::SSL::SSLError && e.message =~ /certificate expired/i
-          e.extend(CertificateExpiredError)
-          raise
+      rescue OpenSSL::SSL::SSLError => exception
+        if exception.message =~ /certificate expired/i
+          exception.extend(CertificateExpiredError)
         end
-
-        raise unless attempts < retries
-
-        destroy_connection
-        attempts += 1
-        retry
+        raise exception
       end
     end
   end
