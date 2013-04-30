@@ -17,7 +17,13 @@ module Grocer
 
     attr_accessor :status_code, :identifier
 
-    def initialize(binary_tuple)
+    ##
+    # having exceptions take a required parameter is non-idiomatic
+    def initialize(binary_tuple = nil)
+      parse(binary_tuple) if binary_tuple
+    end
+
+    def parse(binary_tuple)
       # C => 1 byte command
       # C => 1 byte status
       # N => 4 byte identifier
