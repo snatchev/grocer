@@ -81,17 +81,25 @@ describe Grocer::Connection do
 
   context 'a closed SSLConnection' do
     before do
-      ssl.stubs(:read_nonblock).raises(nonblock_exception)
       ssl.stubs(:connected?).returns(false)
     end
 
     it '#write connects SSLConnection and delegates to it' do
+      ssl.stubs(:read_nonblock).raises(nonblock_exception)
       subject.write('Apples to Oranges')
       ssl.should have_received(:connect)
       ssl.should have_received(:write).with('Apples to Oranges')
     end
 
+    it '#write reconnects if end of file is reached' do
+      ssl.stubs(:read_nonblock).raises(EOFError)
+      subject.expects(:destroy_connection)
+      subject.expects(:connect).twice
+      subject.write('Apples to Oranges')
+    end
+
     it '#read connects SSLConnection delegates to open SSLConnection' do
+      ssl.stubs(:read_nonblock).raises(nonblock_exception)
       subject.read(42, 'IO')
       ssl.should have_received(:connect)
       ssl.should have_received(:read).with(42, 'IO')

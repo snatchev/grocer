@@ -28,12 +28,16 @@ module Grocer
       with_connection do
         begin
           error = ssl.read_nonblock(8)
+        rescue EOFError
+          destroy_connection
+          connect
         rescue IO::WaitReadable
-          ssl.write(content)
+          #no-op, everything is fine
         else
           destroy_connection
           raise ErrorResponse.new(error)
         end
+        ssl.write(content)
       end
     end
 
